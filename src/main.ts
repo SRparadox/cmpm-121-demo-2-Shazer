@@ -1,7 +1,17 @@
 import "./style.css";
 
-const APP_NAME = "Hello";
+//H1 Header
+const APP_NAME = "Le Sketchpad - Shazer";
 const app = document.querySelector<HTMLDivElement>("#app")!;
+const header = document.createElement("h1");
+header.innerText = APP_NAME; 
+app.appendChild(header);
 
-document.title = APP_NAME;
-app.innerHTML = APP_NAME;
+//Create Canvas
+const canvas = document.createElement("canvas"); canvas.width = 256; canvas.height = 256; 
+
+//Add Canvas Style
+canvas.id = "myCanvas";
+app.appendChild(canvas);
+
+
