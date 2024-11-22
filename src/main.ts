@@ -18,32 +18,50 @@ app.appendChild(canvas);
 const context = canvas.getContext("2d");
 
 
-
-//SETUP
-// Brace Ref - Create and Array of Arrays of points  History is current, and Redo is future ones
-let History: { x: number; y: number }[][] = [];
-let RedoSystem: { x: number; y: number }[][] = [];
-
-//This Is for faster tracing during a stroke
-let Line: { x: number; y: number }[] = [];
+//SETUP Brace ref - with the question from slides step 5
+// Remake Array with new Class.  CALL NULL
+let History: Array<MarkerLine> = []; 
+let RedoSystem: Array<MarkerLine> = [];
+let Line: MarkerLine | null = null;
 
 // event.offsetX, event.offsetY gives the (x,y) offset from the edge of the canvas.
 let isDrawing = false;
 let x = 0;
 let y = 0;
 
+//CREATE Class: Used Brace Ref - How to create object oriented redo/undo stacks, with referece to github and also the slide 15 question
+class MarkerLine {
+    points: Array<{ x: number; y: number }>;
 
+    constructor(Start: { x: number; y: number }) {
+        this.points = [Start];   
+    }
+    //Update coords
+    drag(x: number, y: number) {
+        this.points.push({ x, y });
+    }
 
+    display(context: CanvasRenderingContext2D) {  //Context 2d
+        if (this.points.length > 0) {
+            context.beginPath();
+            context.moveTo(this.points[0].x, this.points[0].y);
+            for (const point of this.points) {
+                context.lineTo(point.x, point.y);
+              }
+            context.stroke();
+            context.closePath();
+        }
+    }
+}
 
-//LISTENERS
+//LISTENERS    Forgot to ref: https://developer.mozilla.org/en-US/docs/Web/API/Element/mousemove_event
 // Add the event listeners for mousedown, mousemove, and mouseup
 canvas.addEventListener("mousedown", (e) => {
     x = e.offsetX;
     y = e.offsetY;
     isDrawing = true;
 //Add the current coordinates to the array and set up future lines
-    Line = []; // HAVE, IF NOT ITS DOUBLE. 
-    Line.push({x,y});
+    Line = new MarkerLine({x, y});
     History.push(Line);
     RedoSystem = [];  //Clear the future lines otherwise, redo onto non existent lines
     canvas.dispatchEvent(new Event("drawing-changed")); // DRAWING CHANGED FLAG
@@ -51,42 +69,39 @@ canvas.addEventListener("mousedown", (e) => {
 
 canvas.addEventListener("mousemove", (e) => {
     if (isDrawing) {
-        drawLine(context, x, y, e.offsetX, e.offsetY);
         x = e.offsetX;
         y = e.offsetY;
-
-        Line.push({x,y});        
+        Line.drag(x,y);
         canvas.dispatchEvent(new Event("drawing-changed")); // DRAWING CHANGED FLAG
-  }
+    }
 });
 
 window.addEventListener("mouseup", (e) => {
     if (isDrawing) {
-        drawLine(context, x, y, e.offsetX, e.offsetY);
         x = 0;
         y = 0;
+
+        History.push(Line);
+        Line = null;
         isDrawing = false;
+        canvas.dispatchEvent(new Event("drawing-changed")); // DRAWING CHANGED FLAG
   }
 });
 
 //Dwagin Chnaged flag should add, clear the canvas, and add the current
 canvas.addEventListener("drawing-changed", () => {  // DRAWING CHANGED LISTENER
     context.clearRect(0, 0, canvas.width, canvas.height);
-    context.beginPath();
-    for (const stroke of History) {
-        if (stroke.length!){ 
-            context.moveTo(stroke[0].x, stroke[0].y);  //Utelizing the context.stroke from drawline
-           }                                    
-    for (const coords of stroke) {
-        context.lineTo(coords.x, coords.y); 
+    History.forEach((stroke) => {
+        stroke.display(context);   //The display method uses the CanvasRenderingContext2D
+    });    
+    if (Line) {
+        Line.display(context);
     }
-    context.stroke();
-  }
   });
 
 
 
-//DRAWING
+//DRAWING  LEGACY - Do not need
 function drawLine(context, x1, y1, x2, y2) {
   context.beginPath();
   context.strokeStyle = "black";
@@ -96,8 +111,6 @@ function drawLine(context, x1, y1, x2, y2) {
   context.stroke();
   context.closePath();
 }
-
-
 
 
 
@@ -117,7 +130,7 @@ app.appendChild(Clear);
 const Undo = document.createElement("button"); 
 Undo.innerHTML = "Undo";
 Undo.addEventListener('click', () => {
-    if (History.length!) { //Remove the previous line from the history and added to the potential of the Redu array
+    if (History.length!) { //Remove the previous line from the history and added to the potential of the Redu array. Same principle now with objects
         console.log('Undo clicked!');
         const temp1 = History.pop()!;
         RedoSystem.push(temp1);
