@@ -19,7 +19,6 @@ const context = canvas.getContext("2d");
 
 
 
-
 //SETUP
 // Brace Ref - Create and Array of Arrays of points  History is current, and Redo is future ones
 let History: { x: number; y: number }[][] = [];
