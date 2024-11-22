@@ -215,33 +215,34 @@ app.appendChild(ToolHeader);
 app.appendChild(createButton("Thin", () => (currentThickness = 2)));
 app.appendChild(createButton("Thick", () => (currentThickness = 6)));
 
-app.appendChild(createButton("Switch to Marker Lines", () => {
-    cursorManager.setEmoji(null); // Stop displaying the emoji cursor
-    currentSticker = null;        // Clear the active emoji
-    isEmoji = false;              // Switch to the marker drawing mode
-  }));
 
-
-// Emoji Header
-const EmojiHeader = document.createElement("h3");
-EmojiHeader.textContent = "Emojis";
-app.appendChild(EmojiHeader);
-
-// Emoji buttons
-app.appendChild(createButton("🍭", () => {
-  cursorManager.setEmoji("🍭");
-  currentSticker = new Emoji("🍭");
-  isEmoji = true;
-}));
-
-app.appendChild(createButton("⛰️", () => {
-  cursorManager.setEmoji("⛰️");
-  currentSticker = new Emoji("⛰️");
-  isEmoji = true;
-}));
-
-app.appendChild(createButton("✏️", () => {
-  cursorManager.setEmoji(null);
-  currentSticker = null;
-  isEmoji = false;
-}));
+// Stickers array for emojis
+const stickers = [
+    { symbol: "Marker", name: "Marker", isMarker: true  },
+    { symbol: "🍭", name: "Candy" },
+    { symbol: "⛰️", name: "Mountain" },
+    { symbol: "✏️", name: "Pencil"} // Optional "isMarker" flag to reset
+  ];
+  
+  // Generate header for emojis
+  const EmojiHeader = document.createElement("h3");
+  EmojiHeader.textContent = "Stickers";
+  app.appendChild(EmojiHeader);
+  
+  // Dynamically create sticker buttons
+  stickers.forEach((sticker) => {
+    app.appendChild(
+      createButton(sticker.symbol, () => {
+        // Set currentSticker or switch to marker mode
+        if (sticker.isMarker) {
+          cursorManager.setEmoji(null); // No emoji for markers
+          currentSticker = null;        // Clear active sticker
+          isEmoji = false;              // Switch to marker mode
+        } else {
+          cursorManager.setEmoji(sticker.symbol);
+          currentSticker = new Emoji(sticker.symbol);
+          isEmoji = true;               // Enable emoji mode
+        }
+      })
+    );
+  });
