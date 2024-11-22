@@ -33,6 +33,13 @@ body {
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
+  color: #e66915;
+}
+
+h3 {
+  font-size: 1.2em;
+  line-height: 1.1;
+  color: #fb09da;
 }
 
 #app {
@@ -72,9 +79,13 @@ button {
   background-color: #1a1a1a;
   cursor: pointer;
   transition: border-color 0.25s;
+  color: #e3dddd;
+  border: 2px solid #151414;   
+  box-shadow: 2px 2px 10px #793535;
 }
 button:hover {
-  border-color: #646cff;
+  color: #ff64af;
+  border-color: #ff64af;
 }
 button:focus,
 button:focus-visible {
@@ -98,5 +109,5 @@ button:focus-visible {
   color: #000000;
   background-color: #ffffff;
   border: 2px solid #ffffff;   
-  box-shadow: 2px 2px 10px #6937c5;
+  box-shadow: 2px 2px 10px #0703ed;
 }

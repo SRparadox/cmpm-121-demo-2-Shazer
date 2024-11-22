@@ -236,7 +236,7 @@ app.appendChild(createButton("Thick", () => (currentThickness = 6)));
 
 // Stickers array for emojis
 const stickers = [
-    { symbol: "Marker", name: "Marker", isMarker: true  },
+    { symbol: "Draw Lines", name: "Marker", isMarker: true  },
     { symbol: "🍭", name: "Candy" },
     { symbol: "⛰️", name: "Mountain" },
     { symbol: "✏️", name: "Pencil"} // Optional "isMarker" flag to reset
