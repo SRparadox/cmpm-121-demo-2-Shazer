@@ -130,6 +130,12 @@ canvas.addEventListener("drawing-changed", () => {
 });
 
 // BUTTONS
+
+// Action Header
+const ActionHeader = document.createElement("h3");
+ActionHeader.textContent = "Actions";
+app.appendChild(ActionHeader);
+
 // Clear Button
 const Clear = document.createElement("button"); 
 Clear.textContent = "Clear";
@@ -163,6 +169,11 @@ Redo.addEventListener("click", () => {
     }
 });
 app.appendChild(Redo);
+
+// Tools Header
+const ToolHeader = document.createElement("h3");
+ToolHeader.textContent = "Tools";
+app.appendChild(ToolHeader);
 
 // NEW: Thickness Buttons
 // Thin Button
