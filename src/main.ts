@@ -33,7 +33,7 @@ let isEmoji = false;
 let currentSticker: Emoji | null = null;
 
 // Define the colors
-const colors = ["red", "blue", "green", "yellow", "orange", "purple", "black"];
+const colors = ["black", "red", "blue", "green", "yellow", "orange", "purple"];
 let markerColor = colors[0]; // Default to the first color
 
 // UI: Color Picker
@@ -241,14 +241,36 @@ app.appendChild(createButton("Export", () => {
     anchor.click();
 }));
 
-// Tools Header
-const ToolHeader = document.createElement("h3");
-ToolHeader.textContent = "Tools";
-app.appendChild(ToolHeader);
-
 // Adjust thickness
-app.appendChild(createButton("Thin", () => (currentThickness = 2)));
-app.appendChild(createButton("Thick", () => (currentThickness = 6)));
+// Create a marker thickness slider
+const thicknessHeader = document.createElement("h3");
+thicknessHeader.textContent = "Adjust Marker Thickness";
+app.appendChild(thicknessHeader);
+
+const thicknessSlider = document.createElement("input");
+thicknessSlider.type = "range";
+thicknessSlider.min = "1"; // Minimum marker thickness
+thicknessSlider.max = "10"; // Maximum marker thickness
+thicknessSlider.step = "1"; // Step size
+thicknessSlider.value = currentThickness.toString(); // Default value
+// Add more visible styles to the slider
+thicknessSlider.style.marginBottom = "10px";
+thicknessSlider.style.width = "200px"; // Adjust width as needed
+thicknessSlider.style.height = "15px"; // Makes it thicker
+thicknessSlider.style.border = "3px solid black"; // Thicker, bold border
+thicknessSlider.style.borderRadius = "8px"; // Make it rounded for better aesthetics
+thicknessSlider.style.outline = "none"; // Disable focus outline for a cleaner look
+thicknessSlider.style.background = "lightgray"; // Optional: customize background color
+
+app.appendChild(thicknessSlider);
+
+// Update marker thickness dynamically
+thicknessSlider.addEventListener("input", (event) => {
+  currentThickness = parseInt((event.target as HTMLInputElement).value, 10);
+
+  // Optional feedback for debugging
+  console.log(`Marker thickness updated to: ${currentThickness}`);
+});
 // Create buttons for each color
 colors.forEach((color) => {
     const colorButton = document.createElement("button");
