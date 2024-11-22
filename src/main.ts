@@ -206,6 +206,18 @@ app.appendChild(createButton("Redo", () => {
   }
 }));
 
+//Export Button
+app.appendChild(createButton("Export", () => {
+    //Scale up to 1024 x 1024 Logic  //Brace Help here
+    
+    
+    //Export Logic
+    const anchor = document.createElement("a");
+    anchor.href = canvas.toDataURL("image/png");
+    anchor.download = "sketchpad.png";
+    anchor.click();
+  }));
+
 // Tools Header
 const ToolHeader = document.createElement("h3");
 ToolHeader.textContent = "Tools";
