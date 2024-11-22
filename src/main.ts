@@ -229,20 +229,31 @@ const stickers = [
   EmojiHeader.textContent = "Stickers";
   app.appendChild(EmojiHeader);
   
-  // Dynamically create sticker buttons
   stickers.forEach((sticker) => {
     app.appendChild(
       createButton(sticker.symbol, () => {
         // Set currentSticker or switch to marker mode
         if (sticker.isMarker) {
           cursorManager.setEmoji(null); // No emoji for markers
-          currentSticker = null;        // Clear active sticker
-          isEmoji = false;              // Switch to marker mode
+          currentSticker = null; // Clear active sticker
+          isEmoji = false; // Switch to marker mode
         } else {
           cursorManager.setEmoji(sticker.symbol);
           currentSticker = new Emoji(sticker.symbol);
-          isEmoji = true;               // Enable emoji mode
+          isEmoji = true; // Enable emoji mode
         }
       })
     );
   });
+  
+  // Add the "Custom Sticker" button
+  app.appendChild(
+    createButton("Custom Sticker", () => {
+      const customEmoji = prompt("Enter your custom emoji:", "🙂");  //Brace helped implement the new button
+      if (customEmoji) {
+        cursorManager.setEmoji(customEmoji);
+        currentSticker = new Emoji(customEmoji);
+        isEmoji = true;
+      }
+    })
+  );
