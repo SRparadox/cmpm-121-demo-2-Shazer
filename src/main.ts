@@ -19,7 +19,7 @@ app.appendChild(canvas);
 
 const context = canvas.getContext("2d");
 
-//SETUP | Brace ref - with the question from slides step 5
+//SETUP
 let History: Array<MarkerLine> = []; 
 let RedoSystem: Array<MarkerLine> = [];
 let Line: MarkerLine | null = null;
@@ -29,26 +29,24 @@ let x = 0;
 let y = 0;
 
 // NEW: Default line thickness
-let currentThickness = 2; // Start with 'Thin'
+let currentThickness = 2; 
 
 // CREATE CLASS | Object-Oriented Stack for MarkerLine
 class MarkerLine {
     points: Array<{ x: number; y: number }>;
-    thickness: number;    //Utilized Brace for the implementation: help with adding a thickness variable that can be adjusted via two extra buttons that set the thickness of drawing to 'Thin' or 'Thick' and can remember the setting
+    thickness: number;
 
     constructor(Start: { x: number; y: number }, thickness: number) {
         this.points = [Start];
         this.thickness = thickness;   
     }
-    // Update coords
     drag(x: number, y: number) {
         this.points.push({ x, y });
     }
-
     display(context: CanvasRenderingContext2D) {
         if (this.points.length > 0) {
             context.beginPath();
-            context.lineWidth = this.thickness; // Uses per-line thickness
+            context.lineWidth = this.thickness;
             context.moveTo(this.points[0].x, this.points[0].y);
             for (const point of this.points) {
                 context.lineTo(point.x, point.y);
@@ -59,37 +57,66 @@ class MarkerLine {
     }
 }
 
+// CursorManager class to dynamically show a dot
+class CursorManager {
+    private cursorElement: HTMLDivElement;
+
+    constructor() {
+        this.cursorElement = document.createElement("div");
+        this.cursorElement.style.position = "absolute";
+        this.cursorElement.style.backgroundColor = "black";
+        this.cursorElement.style.borderRadius = "50%";
+        this.cursorElement.style.pointerEvents = "none"; // Prevent interference
+        document.body.appendChild(this.cursorElement);
+
+        // Update cursor on tool-moved Flag
+        document.addEventListener("mousemove", (event) => this.updateCursorPosition(event));
+
+        // Handle cursor hide/show for events
+        canvas.addEventListener("mouseleave", () => (this.cursorElement.style.display = "none"));
+        canvas.addEventListener("mouseenter", () => (this.cursorElement.style.display = "block"));
+    }
+
+    updateCursorPosition(event: MouseEvent) {
+        const thickness = currentThickness; // Use global thickness
+        this.cursorElement.style.width = `${thickness}px`;
+        this.cursorElement.style.height = `${thickness}px`;
+        this.cursorElement.style.left = `${event.pageX - thickness / 2}px`;
+        this.cursorElement.style.top = `${event.pageY - thickness / 2}px`;
+    }
+}
+
+// Initialize CursorManager
+const cursorManager = new CursorManager();
+
 // LISTENERS | Event Handling
 canvas.addEventListener("mousedown", (e) => {
     x = e.offsetX;
     y = e.offsetY;
     isDrawing = true;
-
-    // Instantiate a new MarkerLine with the current thickness
     Line = new MarkerLine({ x, y }, currentThickness);
     History.push(Line);
-    RedoSystem = []; // Clear redo stack
-    canvas.dispatchEvent(new Event("drawing-changed")); // DRAWING CHANGED FLAG
+    RedoSystem = [];
+    canvas.dispatchEvent(new Event("drawing-changed"));
 });
 
 canvas.addEventListener("mousemove", (e) => {
-    if (isDrawing) {
+    if (isDrawing && Line) {
         x = e.offsetX;
         y = e.offsetY;
         Line.drag(x, y);
-        canvas.dispatchEvent(new Event("drawing-changed")); // DRAWING CHANGED FLAG
+        canvas.dispatchEvent(new Event("drawing-changed"));
     }
 });
 
-window.addEventListener("mouseup", (e) => {
-    if (isDrawing) {
+window.addEventListener("mouseup", () => {
+    if (isDrawing && Line) {
         x = 0;
         y = 0;
-
         History.push(Line);
         Line = null;
         isDrawing = false;
-        canvas.dispatchEvent(new Event("drawing-changed")); // DRAWING CHANGED FLAG
+        canvas.dispatchEvent(new Event("drawing-changed"));
     }
 });
 
@@ -107,7 +134,7 @@ canvas.addEventListener("drawing-changed", () => {
 const Clear = document.createElement("button"); 
 Clear.textContent = "Clear";
 Clear.addEventListener("click", () => {
-    History = []; // Clear Arrays
+    History = [];
     RedoSystem = [];
     context.clearRect(0, 0, canvas.width, canvas.height);  
 });
@@ -120,7 +147,7 @@ Undo.addEventListener("click", () => {
     if (History.length) {
         const temp1 = History.pop()!;
         RedoSystem.push(temp1);
-        canvas.dispatchEvent(new Event("drawing-changed")); // DRAWING-CHANGED FLAG
+        canvas.dispatchEvent(new Event("drawing-changed"));
     }
 });
 app.appendChild(Undo);
@@ -132,7 +159,7 @@ Redo.addEventListener("click", () => {
     if (RedoSystem.length) {
         const temp2 = RedoSystem.pop()!;
         History.push(temp2);
-        canvas.dispatchEvent(new Event("drawing-changed")); // DRAWING-CHANGED FLAG
+        canvas.dispatchEvent(new Event("drawing-changed"));
     }
 });
 app.appendChild(Redo);
@@ -142,7 +169,7 @@ app.appendChild(Redo);
 const ThinButton = document.createElement("button");
 ThinButton.textContent = "Thin";
 ThinButton.addEventListener("click", () => {
-    currentThickness = 2; // Set thickness to Thin
+    currentThickness = 2; // Thin thickness
     console.log("Thickness set to Thin: ", currentThickness);
 });
 app.appendChild(ThinButton);
@@ -151,7 +178,7 @@ app.appendChild(ThinButton);
 const ThickButton = document.createElement("button");
 ThickButton.textContent = "Thick";
 ThickButton.addEventListener("click", () => {
-    currentThickness = 6; // Set thickness to Thick
+    currentThickness = 6; // Thick thickness
     console.log("Thickness set to Thick: ", currentThickness);
 });
 app.appendChild(ThickButton);
