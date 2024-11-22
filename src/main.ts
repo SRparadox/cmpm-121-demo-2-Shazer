@@ -32,14 +32,30 @@ let currentThickness = 2;
 let isEmoji = false;
 let currentSticker: Emoji | null = null;
 
-// Classes
+// Define the colors
+const colors = ["red", "blue", "green", "yellow", "orange", "purple", "black"];
+let markerColor = colors[0]; // Default to the first color
+
+// UI: Color Picker
+const colorPickerHeader = document.createElement("h3");
+colorPickerHeader.textContent = "Choose Your Marker Color";
+app.appendChild(colorPickerHeader);
+
+const colorPickerContainer = document.createElement("div");
+colorPickerContainer.style.display = "flex";
+colorPickerContainer.style.gap = "10px";
+app.appendChild(colorPickerContainer);
+
+// MarkerLine class with instance-specific color
 class MarkerLine {
   points: Array<{ x: number; y: number }>;
   thickness: number;
+  color: string;
 
-  constructor(start: { x: number; y: number }, thickness: number) {
+  constructor(start: { x: number; y: number }, thickness: number, color: string) {
     this.points = [start];
     this.thickness = thickness;
+    this.color = color; // Assign unique color at creation
   }
 
   drag(x: number, y: number) {
@@ -49,6 +65,7 @@ class MarkerLine {
   display(context: CanvasRenderingContext2D) {
     if (this.points.length === 0) return;
     context.lineWidth = this.thickness;
+    context.strokeStyle = this.color; // Use the line's specific color
     context.beginPath();
     context.moveTo(this.points[0].x, this.points[0].y);
     for (const point of this.points) {
@@ -141,14 +158,14 @@ canvas.addEventListener("mousedown", (e) => {
     y = e.offsetY;
   
     if (isEmoji && currentSticker) {
-      isDrawing = false; // Prevents misfires in line drawing mode
+      isDrawing = false;
       History.push(new EmojiHistory(currentSticker, x, y, currentThickness));
-    } else if (!isEmoji) { // Ensure clean separation
+    } else if (!isEmoji) {
       isDrawing = true;
-      Line = new MarkerLine({ x, y }, currentThickness);
+      Line = new MarkerLine({ x, y }, currentThickness, markerColor); // Pass the current color
       History.push(Line);
     }
-    RedoSystem = []; // Clear redo stack for new actions
+    RedoSystem = [];
     canvas.dispatchEvent(new Event("drawing-changed"));
   });
 
@@ -232,11 +249,27 @@ app.appendChild(ToolHeader);
 // Adjust thickness
 app.appendChild(createButton("Thin", () => (currentThickness = 2)));
 app.appendChild(createButton("Thick", () => (currentThickness = 6)));
-
+// Create buttons for each color
+colors.forEach((color) => {
+    const colorButton = document.createElement("button");
+    colorButton.style.backgroundColor = color; // Represent the color visually
+    colorButton.style.width = "30px"; // Button size
+    colorButton.style.height = "30px";
+    colorButton.style.border = color === "black" ? "1px solid white" : "none"; // Contrast for black
+    colorButton.style.borderRadius = "50%"; // Make circular buttons (optional)
+    
+    // Click listener to update marker color
+    colorButton.addEventListener("click", () => {
+      markerColor = color; // Set marker color
+      //alert(`Marker is now: ${color}`); // Optional feedback
+    });
+  
+    colorPickerContainer.appendChild(colorButton); // Add button to UI
+  });
 
 // Stickers array for emojis
 const stickers = [
-    { symbol: "Draw Lines", name: "Marker", isMarker: true  },
+    { symbol: "Draw Line", name: "Marker", isMarker: true  },
     { symbol: "🍭", name: "Candy" },
     { symbol: "⛰️", name: "Mountain" },
     { symbol: "✏️", name: "Pencil"} // Optional "isMarker" flag to reset
