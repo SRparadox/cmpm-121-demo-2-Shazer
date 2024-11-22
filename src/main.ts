@@ -206,17 +206,23 @@ app.appendChild(createButton("Redo", () => {
   }
 }));
 
-//Export Button
 app.appendChild(createButton("Export", () => {
-    //Scale up to 1024 x 1024 Logic  //Brace Help here
-    
-    
-    //Export Logic
+    // Create a temporary canvas for scaling  Used Brace for this implementation of the scaling logic
+    const scaledCanvas = document.createElement("canvas");
+    scaledCanvas.width = 1024;
+    scaledCanvas.height = 1024;
+    const scaledContext = scaledCanvas.getContext("2d");
+    if (!scaledContext) throw new Error("2D context could not be initialized on the scaled canvas");
+
+    // Scale the current canvas content
+    scaledContext.drawImage(canvas, 0, 0, scaledCanvas.width, scaledCanvas.height);
+
+    // Export Logic
     const anchor = document.createElement("a");
-    anchor.href = canvas.toDataURL("image/png");
+    anchor.href = scaledCanvas.toDataURL("image/png");
     anchor.download = "sketchpad.png";
     anchor.click();
-  }));
+}));
 
 // Tools Header
 const ToolHeader = document.createElement("h3");
