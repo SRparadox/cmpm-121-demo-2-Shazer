@@ -1,195 +1,247 @@
 import "./style.css";
 
-//FORMATING STUFF
-//H1 Header
+// H1 Header
 const APP_NAME = "Le Sketchpad - Shazer";
 const app = document.querySelector<HTMLDivElement>("#app")!;
 const header = document.createElement("h1");
-header.innerText = APP_NAME; 
+header.innerText = APP_NAME;
 app.appendChild(header);
 
-//Create Canvas
+// Create Canvas
 const canvas = document.createElement("canvas");
-canvas.width = 256; 
-canvas.height = 256; 
-
-//Add Canvas Style
+canvas.width = 256;
+canvas.height = 256;
 canvas.id = "myCanvas";
 app.appendChild(canvas);
 
-const context = canvas.getContext("2d");
+const context = canvas.getContext("2d")!;
+if (!context) throw new Error("2D context could not be initialized");
 
-//SETUP
-let History: Array<MarkerLine> = []; 
-let RedoSystem: Array<MarkerLine> = [];
+// Shared data structures
+type HistoryElement = MarkerLine | EmojiHistory; // Union type for History elements
+
+let History: Array<HistoryElement> = [];
+let RedoSystem: Array<HistoryElement> = [];
 let Line: MarkerLine | null = null;
 
+// Default settings
 let isDrawing = false;
 let x = 0;
 let y = 0;
+let currentThickness = 2;
+let isEmoji = false;
+let currentSticker: Emoji | null = null;
 
-// NEW: Default line thickness
-let currentThickness = 2; 
-
-// CREATE CLASS | Object-Oriented Stack for MarkerLine
+// Classes
 class MarkerLine {
-    points: Array<{ x: number; y: number }>;
-    thickness: number;
+  points: Array<{ x: number; y: number }>;
+  thickness: number;
 
-    constructor(Start: { x: number; y: number }, thickness: number) {
-        this.points = [Start];
-        this.thickness = thickness;   
+  constructor(start: { x: number; y: number }, thickness: number) {
+    this.points = [start];
+    this.thickness = thickness;
+  }
+
+  drag(x: number, y: number) {
+    this.points.push({ x, y });
+  }
+
+  display(context: CanvasRenderingContext2D) {
+    if (this.points.length === 0) return;
+    context.lineWidth = this.thickness;
+    context.beginPath();
+    context.moveTo(this.points[0].x, this.points[0].y);
+    for (const point of this.points) {
+      context.lineTo(point.x, point.y);
     }
-    drag(x: number, y: number) {
-        this.points.push({ x, y });
-    }
-    display(context: CanvasRenderingContext2D) {
-        if (this.points.length > 0) {
-            context.beginPath();
-            context.lineWidth = this.thickness;
-            context.moveTo(this.points[0].x, this.points[0].y);
-            for (const point of this.points) {
-                context.lineTo(point.x, point.y);
-            }
-            context.stroke();
-            context.closePath();
-        }
-    }
+    context.stroke();
+  }
 }
 
-// CursorManager class to dynamically show a dot
 class CursorManager {
-    private cursorElement: HTMLDivElement;
+  private cursorElement: HTMLDivElement;
+  private emoji: string | null = null;
 
-    constructor() {
-        this.cursorElement = document.createElement("div");
-        this.cursorElement.style.position = "absolute";
-        this.cursorElement.style.backgroundColor = "black";
-        this.cursorElement.style.borderRadius = "50%";
-        this.cursorElement.style.pointerEvents = "none"; // Prevent interference
-        document.body.appendChild(this.cursorElement);
+  constructor() {
+    this.cursorElement = document.createElement("div");
+    this.cursorElement.style.position = "absolute";
+    this.cursorElement.style.pointerEvents = "none";
+    this.cursorElement.style.display = "none";
+    document.body.appendChild(this.cursorElement);
 
-        // Update cursor on tool-moved Flag
-        document.addEventListener("mousemove", (event) => this.updateCursorPosition(event));
+    document.addEventListener("mousemove", (event) => this.updateCursorPosition(event));
+    canvas.addEventListener("mouseleave", () => (this.cursorElement.style.display = "none"));
+    canvas.addEventListener("mouseenter", () => (this.cursorElement.style.display = "block"));
+  }
 
-        // Handle cursor hide/show for events
-        canvas.addEventListener("mouseleave", () => (this.cursorElement.style.display = "none"));
-        canvas.addEventListener("mouseenter", () => (this.cursorElement.style.display = "block"));
+  setEmoji(emoji: string | null) {
+    this.emoji = emoji;
+    this.cursorElement.style.display = emoji ? "block" : "none";
+  }
+
+  updateCursorPosition(event: MouseEvent) {
+    const thickness = currentThickness;
+    if (this.emoji) {
+      const fontSize = thickness * 4;
+      this.cursorElement.innerText = this.emoji;
+      this.cursorElement.style.fontSize = `${fontSize}px`;
+      this.cursorElement.style.width = "auto";
+      this.cursorElement.style.height = "auto";
+      this.cursorElement.style.backgroundColor = "transparent";
+    } else {
+      this.cursorElement.style.width = `${thickness}px`;
+      this.cursorElement.style.height = `${thickness}px`;
+      this.cursorElement.style.backgroundColor = "black";
     }
-
-    updateCursorPosition(event: MouseEvent) {
-        const thickness = currentThickness; // Use global thickness
-        this.cursorElement.style.width = `${thickness}px`;
-        this.cursorElement.style.height = `${thickness}px`;
-        this.cursorElement.style.left = `${event.pageX - thickness / 2}px`;
-        this.cursorElement.style.top = `${event.pageY - thickness / 2}px`;
-    }
+    this.cursorElement.style.left = `${event.pageX - thickness / 2}px`;
+    this.cursorElement.style.top = `${event.pageY - thickness / 2}px`;
+  }
 }
 
-// Initialize CursorManager
+class Emoji {
+  symbol: string;
+
+  constructor(symbol: string) {
+    this.symbol = symbol;
+  }
+
+  stamp(context: CanvasRenderingContext2D, x: number, y: number, size: number) {
+    const emojiSize = size * 8;
+    context.font = `${emojiSize}px serif`;
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillText(this.symbol, x, y);
+  }
+}
+
+class EmojiHistory {
+  emoji: Emoji;
+  x: number;
+  y: number;
+  size: number;
+
+  constructor(emoji: Emoji, x: number, y: number, size: number) {
+    this.emoji = emoji;
+    this.x = x;
+    this.y = y;
+    this.size = size;
+  }
+
+  display(context: CanvasRenderingContext2D) {
+    this.emoji.stamp(context, this.x, this.y, this.size);
+  }
+}
+
+// Cursor manager instance
 const cursorManager = new CursorManager();
 
-// LISTENERS | Event Handling
+// Listeners
 canvas.addEventListener("mousedown", (e) => {
     x = e.offsetX;
     y = e.offsetY;
-    isDrawing = true;
-    Line = new MarkerLine({ x, y }, currentThickness);
-    History.push(Line);
-    RedoSystem = [];
+  
+    if (isEmoji && currentSticker) {
+      isDrawing = false; // Prevents misfires in line drawing mode
+      History.push(new EmojiHistory(currentSticker, x, y, currentThickness));
+    } else if (!isEmoji) { // Ensure clean separation
+      isDrawing = true;
+      Line = new MarkerLine({ x, y }, currentThickness);
+      History.push(Line);
+    }
+    RedoSystem = []; // Clear redo stack for new actions
     canvas.dispatchEvent(new Event("drawing-changed"));
-});
+  });
 
 canvas.addEventListener("mousemove", (e) => {
-    if (isDrawing && Line) {
-        x = e.offsetX;
-        y = e.offsetY;
-        Line.drag(x, y);
-        canvas.dispatchEvent(new Event("drawing-changed"));
-    }
+  x = e.offsetX;
+  y = e.offsetY;
+
+  if (isDrawing && Line) {
+    Line.drag(x, y);
+    canvas.dispatchEvent(new Event("drawing-changed"));
+  }
 });
 
 window.addEventListener("mouseup", () => {
-    if (isDrawing && Line) {
-        x = 0;
-        y = 0;
-        History.push(Line);
-        Line = null;
-        isDrawing = false;
-        canvas.dispatchEvent(new Event("drawing-changed"));
-    }
+  isDrawing = false;
+  Line = null;
 });
 
-//DRAWING CHANGED FLAG | Rerender Canvas
 canvas.addEventListener("drawing-changed", () => {
-    context.clearRect(0, 0, canvas.width, canvas.height);
-    History.forEach((stroke) => stroke.display(context));
-    if (Line) {
-        Line.display(context);
-    }
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  History.forEach((stroke) => stroke.display(context));
 });
 
-// BUTTONS
-
-// Action Header
+// Buttons and tools
 const ActionHeader = document.createElement("h3");
 ActionHeader.textContent = "Actions";
 app.appendChild(ActionHeader);
 
-// Clear Button
-const Clear = document.createElement("button"); 
-Clear.textContent = "Clear";
-Clear.addEventListener("click", () => {
-    History = [];
-    RedoSystem = [];
-    context.clearRect(0, 0, canvas.width, canvas.height);  
-});
-app.appendChild(Clear);
+function createButton(label: string, onClick: () => void): HTMLButtonElement {
+  const button = document.createElement("button");
+  button.textContent = label;
+  button.addEventListener("click", onClick);
+  return button;
+}
 
-// Undo Button
-const Undo = document.createElement("button"); 
-Undo.textContent = "Undo";
-Undo.addEventListener("click", () => {
-    if (History.length) {
-        const temp1 = History.pop()!;
-        RedoSystem.push(temp1);
-        canvas.dispatchEvent(new Event("drawing-changed"));
-    }
-});
-app.appendChild(Undo);
+// Clear button
+app.appendChild(createButton("Clear", () => {
+  History = [];
+  RedoSystem = [];
+  context.clearRect(0, 0, canvas.width, canvas.height);
+}));
 
-// Redo Button
-const Redo = document.createElement("button"); 
-Redo.textContent = "Redo";
-Redo.addEventListener("click", () => {
-    if (RedoSystem.length) {
-        const temp2 = RedoSystem.pop()!;
-        History.push(temp2);
-        canvas.dispatchEvent(new Event("drawing-changed"));
-    }
-});
-app.appendChild(Redo);
+// Undo & Redo
+app.appendChild(createButton("Undo", () => {
+  if (History.length) {
+    RedoSystem.push(History.pop()!);
+    canvas.dispatchEvent(new Event("drawing-changed"));
+  }
+}));
+
+app.appendChild(createButton("Redo", () => {
+  if (RedoSystem.length) {
+    History.push(RedoSystem.pop()!);
+    canvas.dispatchEvent(new Event("drawing-changed"));
+  }
+}));
 
 // Tools Header
 const ToolHeader = document.createElement("h3");
 ToolHeader.textContent = "Tools";
 app.appendChild(ToolHeader);
 
-// NEW: Thickness Buttons
-// Thin Button
-const ThinButton = document.createElement("button");
-ThinButton.textContent = "Thin";
-ThinButton.addEventListener("click", () => {
-    currentThickness = 2; // Thin thickness
-    console.log("Thickness set to Thin: ", currentThickness);
-});
-app.appendChild(ThinButton);
+// Adjust thickness
+app.appendChild(createButton("Thin", () => (currentThickness = 2)));
+app.appendChild(createButton("Thick", () => (currentThickness = 6)));
 
-// Thick Button
-const ThickButton = document.createElement("button");
-ThickButton.textContent = "Thick";
-ThickButton.addEventListener("click", () => {
-    currentThickness = 6; // Thick thickness
-    console.log("Thickness set to Thick: ", currentThickness);
-});
-app.appendChild(ThickButton);
+app.appendChild(createButton("Switch to Marker Lines", () => {
+    cursorManager.setEmoji(null); // Stop displaying the emoji cursor
+    currentSticker = null;        // Clear the active emoji
+    isEmoji = false;              // Switch to the marker drawing mode
+  }));
+
+
+// Emoji Header
+const EmojiHeader = document.createElement("h3");
+EmojiHeader.textContent = "Emojis";
+app.appendChild(EmojiHeader);
+
+// Emoji buttons
+app.appendChild(createButton("🍭", () => {
+  cursorManager.setEmoji("🍭");
+  currentSticker = new Emoji("🍭");
+  isEmoji = true;
+}));
+
+app.appendChild(createButton("⛰️", () => {
+  cursorManager.setEmoji("⛰️");
+  currentSticker = new Emoji("⛰️");
+  isEmoji = true;
+}));
+
+app.appendChild(createButton("✏️", () => {
+  cursorManager.setEmoji(null);
+  currentSticker = null;
+  isEmoji = false;
+}));
